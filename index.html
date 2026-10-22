@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VegCalc Pro — Vegetable Intake & Profit Spreadsheet Tracker</title>
+  <meta name="description" content="Excel-like vegetable vendor intake, cost per kg, retail pricing, and profit tracking spreadsheet application.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#107c41">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- SheetJS offline script with CDN fallback -->
+  <script src="xlsx.full.min.js"></script>
+</head>
+<body class="theme-light">
+  <div id="app" class="app-container">
+    
+    <!-- Top Ribbon / Excel Navigation Bar -->
+    <header class="excel-ribbon">
+      <div class="ribbon-top-row">
+        <div class="brand-section">
+          <div class="app-logo">
+            <span class="logo-icon">🥬</span>
+            <div class="logo-badge">EXCEL</div>
+          </div>
+          <div class="app-title-group">
+            <h1 class="app-title">VegCalc Pro <span class="app-version">v2.0</span></h1>
+            <p class="app-subtitle">Mandi Vegetable Intake, Cost per kg & Retail Profit Tracker</p>
+          </div>
+        </div>
+
+        <!-- Quick Top Toolbar Actions -->
+        <div class="ribbon-actions">
+          <button id="btn-quick-entry-toggle" class="btn btn-primary" title="Toggle Quick Entry Form (Alt + N)">
+            <span class="btn-icon">⚡</span> Quick Add Item
+          </button>
+          <button id="btn-add-row" class="btn btn-secondary" title="Add blank spreadsheet row">
+            <span class="btn-icon">➕</span> Add Blank Row
+          </button>
+          
+          <div class="btn-group">
+            <button id="btn-export-excel" class="btn btn-outline" title="Export to native Microsoft Excel (.xlsx) file">
+              <span class="btn-icon">📊</span> Export Excel
+            </button>
+            <button id="btn-export-csv" class="btn btn-outline" title="Export to CSV file">
+              <span class="btn-icon">📑</span> CSV
+            </button>
+            <label for="excel-file-input" class="btn btn-outline file-label" title="Import from Excel (.xlsx) or CSV file">
+              <span class="btn-icon">📥</span> Import
+              <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display:none;">
+            </label>
+          </div>
+
+          <button id="btn-mobile-app" class="btn btn-outline" style="border-color: #059669; color: #059669; background: #e8f5ec;" title="Install on Mobile Phone / Scan QR">
+            <span class="btn-icon">📲</span> Phone App
+          </button>
+
+          <button id="btn-print" class="btn btn-outline" title="Print Mandi Intake Sheet / Save as PDF">
+            <span class="btn-icon">🖨️</span> Print
+          </button>
+
+          <button id="btn-calc-modal-toggle" class="btn btn-outline" title="Mandi Spot Bargain Calculator">
+            <span class="btn-icon">🧮</span> Mandi Calculator
+          </button>
+
+          <button id="btn-reset-data" class="btn btn-outline btn-danger-soft" title="Reset to default Veg Business Tracker template data">
+            <span class="btn-icon">🔄</span> Reset
+          </button>
+
+          <button id="btn-theme-toggle" class="btn btn-icon-only" title="Toggle Dark/Light Mode">
+            <span id="theme-icon">🌙</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Excel Sheet Tab Switcher & Filter Bar -->
+      <div class="ribbon-bottom-row">
+        <div class="sheet-tabs">
+          <button class="sheet-tab active" data-tab="intake">
+            <span class="tab-indicator green"></span>
+            <span class="tab-name">📋 Intake (Purchases & Profit)</span>
+          </button>
+          <button class="sheet-tab" data-tab="summary">
+            <span class="tab-indicator blue"></span>
+            <span class="tab-name">📈 Daily Mandi Summary</span>
+          </button>
+          <button class="sheet-tab" data-tab="analytics">
+            <span class="tab-indicator purple"></span>
+            <span class="tab-name">💡 Top Margin Items</span>
+          </button>
+        </div>
+
+        <div class="filters-group">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="filter-search" placeholder="Search vegetable (Potato, Tameta, Marcha...)" autocomplete="off">
+            <button id="btn-clear-search" class="clear-icon" style="display: none;">✕</button>
+          </div>
+          <div class="date-filter-box">
+            <label for="filter-date">Date:</label>
+            <input type="date" id="filter-date">
+            <button id="btn-date-all" class="btn btn-xs">Show All</button>
+            <button id="btn-date-today" class="btn btn-xs btn-active">Today</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top KPI Summary Cards Ribbon -->
+    <section class="kpi-ribbon" id="kpi-ribbon">
+      <div class="kpi-card cost-card">
+        <div class="kpi-header">
+          <span class="kpi-label">TOTAL MANDI COST</span>
+          <span class="kpi-chip cost-chip">INVESTMENT</span>
+        </div>
+        <div class="kpi-value" id="kpi-total-cost">₹0.00</div>
+        <div class="kpi-subtext" id="kpi-total-weight">0.00 kg across 0 items</div>
+      </div>
+
+      <div class="kpi-card revenue-card">
+        <div class="kpi-header">
+          <span class="kpi-label">PROJECTED SALES</span>
+          <span class="kpi-chip revenue-chip">RETAIL VALUE</span>
+        </div>
+        <div class="kpi-value" id="kpi-total-revenue">₹0.00</div>
+        <div class="kpi-subtext" id="kpi-avg-cost-rate">Avg Buy: ₹0.00 / kg</div>
+      </div>
+
+      <div class="kpi-card profit-card">
+        <div class="kpi-header">
+          <span class="kpi-label">PROJECTED PROFIT</span>
+          <span class="kpi-chip profit-chip">EXPECTED NET</span>
+        </div>
+        <div class="kpi-value" id="kpi-total-profit">₹0.00</div>
+        <div class="kpi-subtext" id="kpi-profit-per-kg">+₹0.00 avg gain / kg</div>
+      </div>
+
+      <div class="kpi-card margin-card">
+        <div class="kpi-header">
+          <span class="kpi-label">PROFIT MARGIN</span>
+          <span class="kpi-chip margin-chip">RETURN ON SALES</span>
+        </div>
+        <div class="kpi-value" id="kpi-avg-margin">0.0%</div>
+        <div class="kpi-subtext" id="kpi-highest-item">Best item: —</div>
+      </div>
+    </section>
+
+    <!-- Rapid Mandi Quick Input Panel -->
+    <section class="quick-entry-panel" id="quick-entry-panel">
+      <div class="quick-entry-header">
+        <div class="quick-entry-title">
+          <span class="quick-icon">⚡</span>
+          <strong>Rapid Mandi Entry Bar</strong>
+          <span class="quick-hint">Type item & numbers, hit <kbd>Enter</kbd> to add directly to spreadsheet</span>
+        </div>
+        <button id="btn-close-quick-entry" class="btn-close" title="Collapse quick entry">✕</button>
+      </div>
+
+      <form id="quick-entry-form" class="quick-entry-form" onsubmit="return false;">
+        <div class="form-row">
+          <!-- Date -->
+          <div class="form-group date-col">
+            <label for="qe-date">Date</label>
+            <input type="date" id="qe-date" required>
+          </div>
+
+          <!-- Vegetable Item with smart autocomplete -->
+          <div class="form-group item-col">
+            <label for="qe-item">Item Name <span class="badge-hint">(English / Gujarati)</span></label>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="qe-item" placeholder="e.g. Potato, Tameta, Marcha, Bhindi..." autocomplete="off" required>
+              <div id="autocomplete-list" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
+          </div>
+
+          <!-- Quantity (kg) -->
+          <div class="form-group qty-col">
+            <label for="qe-qty">Quantity (kg)</label>
+            <input type="number" id="qe-qty" step="any" min="0.01" inputmode="decimal" placeholder="e.g. 50" required>
+          </div>
+
+          <!-- Total Purchase Price (₹) -->
+          <div class="form-group price-col">
+            <label for="qe-price">Total Price Paid (₹)</label>
+            <input type="number" id="qe-price" step="any" min="0" inputmode="decimal" placeholder="e.g. 850" required>
+          </div>
+
+          <!-- Calculated Cost per kg (Live) -->
+          <div class="form-group calc-col">
+            <label>Cost / kg (Auto)</label>
+            <div class="live-calc-badge" id="qe-cost-per-kg-badge">₹0.00 /kg</div>
+          </div>
+
+          <!-- Retail Selling Price per kg (₹) -->
+          <div class="form-group retail-col">
+            <label for="qe-retail">Retail Price (₹/kg)</label>
+            <input type="number" id="qe-retail" step="any" min="0" inputmode="decimal" placeholder="e.g. 25" required>
+          </div>
+
+          <!-- Calculated Profit (Live) -->
+          <div class="form-group profit-col">
+            <label>Est. Profit (Auto)</label>
+            <div class="live-profit-badge" id="qe-profit-badge">+₹0.00 /kg</div>
+          </div>
+
+          <!-- Supplier / Mandi Notes -->
+          <div class="form-group notes-col">
+            <label for="qe-notes">Supplier / Notes</label>
+            <input type="text" id="qe-notes" placeholder="e.g. Ramesh Mandi, Grade A">
+          </div>
+
+          <!-- Submit Button -->
+          <div class="form-group btn-col">
+            <label>&nbsp;</label>
+            <button type="submit" id="btn-submit-quick-entry" class="btn btn-success btn-block">
+              <span>➕ Add Item</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Common Quick Vegetable Chips for 1-Click Fill -->
+        <div class="quick-veg-chips" id="quick-veg-chips">
+          <span class="chips-label">Fast Select:</span>
+          <!-- Dynamic vegetable chips will be populated here -->
+        </div>
+      </form>
+    </section>
+
+    <!-- Excel Formula Bar -->
+    <section class="excel-formula-bar">
+      <div class="active-cell-box" id="formula-active-cell" title="Current Cell Coordinate">A5</div>
+      <div class="formula-icon-box">
+        <span class="formula-fx">fx</span>
+      </div>
+      <div class="formula-input-wrapper">
+        <input type="text" id="formula-bar-input" placeholder="Select any cell to view or edit value/formula" spellcheck="false">
+      </div>
+      <div class="formula-info-badges" id="selection-summary-badge">
+        <span class="badge-item">1 row selected</span>
+      </div>
+    </section>
+
+    <!-- Excel Spreadsheet Table Section -->
+    <main class="spreadsheet-container" id="spreadsheet-container">
+      <div class="table-scroll-wrapper">
+        <table class="excel-table" id="excel-table">
+          <thead>
+            <!-- Column Letters Row (A, B, C, D...) -->
+            <tr class="header-letters-row">
+              <th class="cell-corner">#</th>
+              <th class="col-letter">A</th>
+              <th class="col-letter">B</th>
+              <th class="col-letter">C</th>
+              <th class="col-letter">D</th>
+              <th class="col-letter col-calc">E</th>
+              <th class="col-letter">F</th>
+              <th class="col-letter col-calc">G</th>
+              <th class="col-letter col-calc">H</th>
+              <th class="col-letter col-calc">I</th>
+              <th class="col-letter">J</th>
+              <th class="col-letter col-actions">⚡</th>
+            </tr>
+            <!-- Header Names Row matching Intake sheet -->
+            <tr class="header-names-row">
+              <th class="row-num-header">
+                <input type="checkbox" id="select-all-rows" title="Select all rows">
+              </th>
+              <th class="th-input" data-col="date">
+                <span class="th-title">Date</span>
+                <span class="th-tag yellow-tag">Input</span>
+              </th>
+              <th class="th-input" data-col="item">
+                <span class="th-title">Item Name</span>
+                <span class="th-tag yellow-tag">Input</span>
+              </th>
+              <th class="th-input" data-col="qty">
+                <span class="th-title">Quantity (kg)</span>
+                <span class="th-tag yellow-tag">Input</span>
+              </th>
+              <th class="th-input" data-col="totalPrice">
+                <span class="th-title">Total Price Paid (₹)</span>
+                <span class="th-tag yellow-tag">Input</span>
+              </th>
+              <th class="th-calc" data-col="pricePerKg">
+                <span class="th-title">Price per kg (₹)</span>
+                <span class="th-tag green-tag">Formula [D/C]</span>
+              </th>
+              <th class="th-input" data-col="retailPrice">
+                <span class="th-title">Retail Price / kg (₹)</span>
+                <span class="th-tag yellow-tag">Input</span>
+              </th>
+              <th class="th-calc" data-col="profitPerKg">
+                <span class="th-title">Profit / kg (₹)</span>
+                <span class="th-tag green-tag">Formula [F-E]</span>
+              </th>
+              <th class="th-calc" data-col="totalProfit">
+                <span class="th-title">Total Profit (₹)</span>
+                <span class="th-tag green-tag">Formula [G*C]</span>
+              </th>
+              <th class="th-calc" data-col="marginPct">
+                <span class="th-title">Margin %</span>
+                <span class="th-tag green-tag">Formula [G/F]</span>
+              </th>
+              <th class="th-input" data-col="supplier">
+                <span class="th-title">Supplier / Notes</span>
+                <span class="th-tag yellow-tag">Notes</span>
+              </th>
+              <th class="th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="spreadsheet-tbody">
+            <!-- Dynamic Spreadsheet Rows Generated by JavaScript -->
+          </tbody>
+          <tfoot>
+            <tr class="table-totals-row" id="table-totals-row">
+              <td class="total-label-cell" colspan="3">
+                <span class="total-bold">TOTALS</span>
+                <span class="total-count-badge" id="footer-count">0 items</span>
+              </td>
+              <td class="total-val-cell num-cell" id="footer-total-qty">0.0 kg</td>
+              <td class="total-val-cell num-cell" id="footer-total-cost">₹0.00</td>
+              <td class="total-val-cell num-cell" id="footer-avg-cost">₹0.00 /kg</td>
+              <td class="total-val-cell num-cell" id="footer-avg-retail">—</td>
+              <td class="total-val-cell num-cell" id="footer-avg-profit">₹0.00 /kg</td>
+              <td class="total-val-cell num-cell profit-green" id="footer-total-profit">₹0.00</td>
+              <td class="total-val-cell num-cell" id="footer-avg-margin">0.0%</td>
+              <td colspan="2" class="total-footer-note">All formulas synchronized</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Empty State / No Results Banner -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <span class="empty-icon">🥬</span>
+        <h3>No vegetable entries found</h3>
+        <p>Try clearing your search/date filter or click below to add a new purchase.</p>
+        <button id="btn-empty-add" class="btn btn-primary">➕ Add First Purchase</button>
+      </div>
+    </main>
+
+    <!-- Excel Status Bar at Bottom -->
+    <footer class="excel-status-bar">
+      <div class="status-left">
+        <span class="status-pill ready-pill"><span class="dot"></span> READY</span>
+        <span class="status-text" id="status-row-info">Showing all 11 entries</span>
+        <span class="shortcut-tip"><kbd>Tab</kbd> / <kbd>Enter</kbd> to move | Click cell to edit</span>
+      </div>
+      <div class="status-right" id="status-aggregates">
+        <span class="stat-calc" id="stat-sum">SUM: ₹0.00</span>
+        <span class="stat-calc" id="stat-avg">AVERAGE: ₹0.00</span>
+        <span class="stat-calc" id="stat-count">COUNT: 0</span>
+      </div>
+    </footer>
+
+    <!-- Mandi Spot Bargain Calculator Drawer / Modal -->
+    <div id="mandi-calc-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-window">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">🧮</span>
+            <h3>Mandi Spot Bargain Calculator</h3>
+          </div>
+          <button id="btn-close-calc-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Quickly negotiate rates at the Mandi! Enter expected quantity & cost to see your cost per kg and retail profit margin before you buy.</p>
+          
+          <div class="calc-grid">
+            <div class="calc-field">
+              <label>Vegetable Name</label>
+              <input type="text" id="mc-name" placeholder="e.g. Potato / Batata">
+            </div>
+            <div class="calc-field">
+              <label>Quantity (kg)</label>
+              <input type="number" id="mc-qty" step="any" value="50">
+            </div>
+            <div class="calc-field">
+              <label>Total Mandi Price (₹)</label>
+              <input type="number" id="mc-total-price" step="any" value="850">
+            </div>
+            <div class="calc-field">
+              <label>Your Planned Retail Price (₹/kg)</label>
+              <input type="number" id="mc-retail" step="any" value="25">
+            </div>
+          </div>
+
+          <div class="calc-result-box">
+            <div class="calc-res-item">
+              <span class="res-label">Your Cost Price:</span>
+              <span class="res-val" id="mc-res-cost">₹17.00 / kg</span>
+            </div>
+            <div class="calc-res-item">
+              <span class="res-label">Profit per kg:</span>
+              <span class="res-val green" id="mc-res-profit-kg">+₹8.00 / kg</span>
+            </div>
+            <div class="calc-res-item">
+              <span class="res-label">Total Expected Profit:</span>
+              <span class="res-val bold-green" id="mc-res-total-profit">+₹400.00</span>
+            </div>
+            <div class="calc-res-item">
+              <span class="res-label">Profit Margin:</span>
+              <span class="res-val badge-margin" id="mc-res-margin">32.0%</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-calc-add-to-sheet" class="btn btn-success">
+            ➕ Add this Bargain to Spreadsheet
+          </button>
+          <button id="btn-calc-cancel" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Summary View Modal / Tab Content -->
+    <div id="daily-summary-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-window modal-wide">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">📈</span>
+            <h3>Daily Mandi Intake & Profit Breakdown</h3>
+          </div>
+          <button id="btn-close-summary-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body" id="daily-summary-content">
+          <!-- Summary tables and analytics rendered here -->
+        </div>
+        <div class="modal-footer">
+          <button id="btn-print-summary" class="btn btn-outline">🖨️ Print Summary</button>
+          <button id="btn-close-summary-btn" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile App Installation Modal -->
+    <div id="mobile-app-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-window">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-icon">📲</span>
+            <h3>Install Mobile App (Android / iOS)</h3>
+          </div>
+          <button id="btn-close-mobile-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="mobile-qr.png" alt="Scan QR Code to open on phone" style="width: 170px; height: 170px; border-radius: 8px; border: 2px solid #107c41; padding: 4px; background: #fff; box-shadow: var(--shadow-md);">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">Scan with your phone camera or QR scanner</p>
+          </div>
+
+          <div style="background: var(--excel-green-soft); border: 1px solid rgba(16, 124, 65, 0.2); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--excel-green); text-transform: uppercase;">Mandi Phone Link (Same Wi-Fi / Hotspot):</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+              <code style="font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; color: var(--text-main);">http://192.168.43.63:5174/</code>
+              <button id="btn-copy-mobile-link" class="btn btn-xs" style="background: var(--excel-green); color: #fff;">Copy Link</button>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.82rem;">
+            <div style="display: flex; gap: 10px; align-items: flex-start; background: #fffdf2; padding: 10px; border-radius: 6px; border-left: 3px solid #f59e0b;">
+              <span style="font-size: 1.2rem;">💡</span>
+              <div>
+                <strong>If Chrome says "App cannot be installed":</strong>
+                <p style="color: var(--text-muted); font-size: 0.76rem; margin-top: 2px;">Chrome blocks the "Install" button on local IP addresses because of HTTPS security rules. Instead, tap the <strong>3 dots (⋮)</strong> and choose <strong>"Add to Home screen"</strong>. It puts the app icon right on your phone screen!</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="font-size: 1.2rem;">🤖</span>
+              <div>
+                <strong>How to Add on Android Phone:</strong>
+                <p style="color: var(--text-muted); font-size: 0.76rem; margin-top: 2px;">1. Open <code>http://192.168.43.63:5174/</code> in Chrome.<br>2. Tap the <strong>3 dots (⋮)</strong> at top-right.<br>3. Tap <strong>"Add to Home screen"</strong> ➔ tap <strong>Add</strong>.<br>4. The <strong>🥬 VegCalc</strong> app icon is now on your home screen!</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="font-size: 1.2rem;">⚡</span>
+              <div>
+                <strong>100% Offline at Mandi:</strong>
+                <p style="color: var(--text-muted); font-size: 0.76rem; margin-top: 2px;">Once opened on your phone, you don't need internet or mobile data at the mandi!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-pwa-direct-install" class="btn btn-success" style="display: none;">
+            📥 Install App Directly
+          </button>
+          <button id="btn-close-mobile-btn" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="vegetables.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
