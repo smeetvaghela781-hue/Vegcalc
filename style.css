@@ -1549,3 +1549,29 @@ body.theme-dark .table-totals-row td {
   }
 }
 
+
+/* Mobile scroll fix: let the whole page scroll on phones */
+@media (max-width: 900px) {
+  html, body {
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    overflow: visible;
+  }
+  .spreadsheet-container {
+    flex: none;
+    overflow: visible;
+  }
+  .table-scroll-wrapper {
+    flex: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+}

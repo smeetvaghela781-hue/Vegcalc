@@ -1,5 +1,5 @@
 // VegCalc Pro — Service Worker for 100% Offline Mobile Operation
-const CACHE_NAME = "vegcalc-pro-v2";
+const CACHE_NAME = "vegcalc-pro-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
